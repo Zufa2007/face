@@ -1,49 +1,42 @@
 import streamlit as st
+from PIL import Image
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw
 import io
 import webbrowser
 
-st.set_page_config(page_title="Image Scanner", layout="wide")
-st.title("Image Scanner")
-st.markdown("Upload image for analysis and web lookup")
+st.set_page_config(page_title="My PimEyes", layout="wide")
+st.title("🔍 My PimEyes")
+st.markdown("**My Personal Image Search Tool**")
 
-uploaded_file = st.file_uploader("Upload image...", type=["jpg", "jpeg", "png", "webp"])
+uploaded_file = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_container_width=True)
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded Photo", use_container_width=True)
 
+    # Detection
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
     cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    items = cascade.detectMultiScale(gray, 1.1, 5, minSize=(60,60))
+    detections = cascade.detectMultiScale(gray, 1.1, 5)
 
-    if len(items) > 0:
-        st.success(f"Detected {len(items)} item(s)")
-        annotated = image.copy()
-        draw = ImageDraw.Draw(annotated)
-        for (x, y, w, h) in items:
-            draw.rectangle([x, y, x+w, y+h], outline="lime", width=5)
-        st.image(annotated, caption="Detected", use_container_width=True)
+    if len(detections) > 0:
+        st.success(f"Found {len(detections)} target(s)")
+        draw = ImageDraw.Draw(image.copy())
+        for (x,y,w,h) in detections:
+            draw.rectangle([x,y,x+w,y+h], outline="red", width=4)
+        st.image(image, caption="Detected", use_container_width=True)
 
     buf = io.BytesIO()
     image.save(buf, format="JPEG", quality=95)
-    img_bytes = buf.getvalue()
 
-    st.download_button("Download Image", img_bytes, "image.jpg", "image/jpeg")
+    st.download_button("Download Clean Image", buf.getvalue(), "photo.jpg", "image/jpeg")
 
-    st.subheader("Web Lookup")
+    st.subheader("Search This Photo")
+    if st.button("🔥 Start Search", type="primary"):
+        webbrowser.open("https://pimeyes.com/en/")
+        webbrowser.open_new_tab("https://yandex.com/images/")
+        webbrowser.open_new_tab("https://facecheck.id/")
 
-    if st.button("Start Main Search", type="primary"):
-        webbrowser.open("https://yandex.com/images/")
-        webbrowser.open_new_tab("https://www.google.com/searchbyimage")
-        st.success("Opened main search pages - upload the downloaded image there")
-
-    if st.button("Start Additional Search"):
-        webbrowser.open("https://tineye.com/")
-        st.info("Use the downloaded image on the opened pages")
-
-    st.info("Best results: Download image first, then upload on the opened sites.")
+    st.info("1. Download the photo\n2. Upload it on the opened websites")
