@@ -5,9 +5,9 @@ from PIL import Image, ImageDraw
 import io
 import webbrowser
 
-st.set_page_config(page_title="Scanner Pro", layout="wide")
-st.title("Scanner Pro")
-st.markdown("Upload image → Detect + Web search links")
+st.set_page_config(page_title="Image Scanner", layout="wide")
+st.title("Image Scanner")
+st.markdown("Upload image for analysis and web lookup")
 
 uploaded_file = st.file_uploader("Upload image...", type=["jpg", "jpeg", "png", "webp"])
 
@@ -22,42 +22,28 @@ if uploaded_file:
     items = cascade.detectMultiScale(gray, 1.1, 5, minSize=(60,60))
 
     if len(items) > 0:
-        st.success(f"✅ Detected {len(items)} item(s)")
+        st.success(f"Detected {len(items)} item(s)")
         annotated = image.copy()
         draw = ImageDraw.Draw(annotated)
         for (x, y, w, h) in items:
             draw.rectangle([x, y, x+w, y+h], outline="lime", width=5)
         st.image(annotated, caption="Detected", use_container_width=True)
-    else:
-        st.warning("No item detected — will still search full image.")
 
     buf = io.BytesIO()
     image.save(buf, format="JPEG", quality=95)
     img_bytes = buf.getvalue()
 
-    st.download_button("📥 Download Image", img_bytes, "search_image.jpg", "image/jpeg")
+    st.download_button("Download Image", img_bytes, "image.jpg", "image/jpeg")
 
-    st.subheader("🔍 Search on Web Platforms")
+    st.subheader("Web Lookup")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("PimEyes (Best for People)", type="primary"):
-            webbrowser.open("https://pimeyes.com/en/")
-        if st.button("Yandex Images"):
-            webbrowser.open("https://yandex.com/images/")
+    if st.button("Start Main Search", type="primary"):
+        webbrowser.open("https://yandex.com/images/")
+        webbrowser.open_new_tab("https://www.google.com/searchbyimage")
+        st.success("Opened main search pages - upload the downloaded image there")
 
-    with col2:
-        if st.button("Google Reverse Search"):
-            webbrowser.open("https://www.google.com/searchbyimage")
-        if st.button("FaceCheck.ID"):
-            webbrowser.open("https://facecheck.id/")
+    if st.button("Start Additional Search"):
+        webbrowser.open("https://tineye.com/")
+        st.info("Use the downloaded image on the opened pages")
 
-    st.subheader("Social Media Quick Search")
-    if st.button("Instagram / Facebook Search"):
-        st.info("After reverse search, try Google with: site:instagram.com [name]")
-    if st.button("Twitter / X"):
-        webbrowser.open("https://twitter.com/explore")
-    if st.button("VK Search"):
-        webbrowser.open("https://vk.com/search")
-
-    st.info("Download the image and upload it on the sites above for best results.")
+    st.info("Best results: Download image first, then upload on the opened sites.")
