@@ -1,62 +1,63 @@
 import streamlit as st
-from PIL import Image
+import cv2
+import numpy as np
+from PIL import Image, ImageDraw
 import io
 import webbrowser
 
-st.set_page_config(page_title="Web Scanner", layout="wide")
-st.title("🕵️ Web Scanner Pro")
-st.markdown("Upload image → Get links to search on social media & major platforms")
+st.set_page_config(page_title="Scanner Pro", layout="wide")
+st.title("Scanner Pro")
+st.markdown("Upload image → Detect + Web search links")
 
 uploaded_file = st.file_uploader("Upload image...", type=["jpg", "jpeg", "png", "webp"])
 
 if uploaded_file:
-    image = Image.open(uploaded_file)
+    image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_container_width=True)
+
+    img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+
+    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    items = cascade.detectMultiScale(gray, 1.1, 5, minSize=(60,60))
+
+    if len(items) > 0:
+        st.success(f"✅ Detected {len(items)} item(s)")
+        annotated = image.copy()
+        draw = ImageDraw.Draw(annotated)
+        for (x, y, w, h) in items:
+            draw.rectangle([x, y, x+w, y+h], outline="lime", width=5)
+        st.image(annotated, caption="Detected", use_container_width=True)
+    else:
+        st.warning("No item detected — will still search full image.")
 
     buf = io.BytesIO()
     image.save(buf, format="JPEG", quality=95)
-    st.download_button("📥 Download Image (Recommended)", buf.getvalue(), "image_for_search.jpg", "image/jpeg")
+    img_bytes = buf.getvalue()
 
-    st.subheader("🔍 Best Places to Search This Image")
+    st.download_button("📥 Download Image", img_bytes, "search_image.jpg", "image/jpeg")
+
+    st.subheader("🔍 Search on Web Platforms")
 
     col1, col2 = st.columns(2)
-
     with col1:
-        st.markdown("**Best for People / Celebrities**")
-        if st.button("PimEyes", type="primary"):
+        if st.button("PimEyes (Best for People)", type="primary"):
             webbrowser.open("https://pimeyes.com/en/")
+        if st.button("Yandex Images"):
+            webbrowser.open("https://yandex.com/images/")
+
+    with col2:
+        if st.button("Google Reverse Search"):
+            webbrowser.open("https://www.google.com/searchbyimage")
         if st.button("FaceCheck.ID"):
             webbrowser.open("https://facecheck.id/")
 
-    with col2:
-        st.markdown("**Best General Search**")
-        if st.button("Yandex Images"):
-            webbrowser.open("https://yandex.com/images/")
-        if st.button("Google Reverse"):
-            webbrowser.open("https://www.google.com/searchbyimage")
-
-    st.subheader("📱 Social Media & Other Platforms")
-    
-    if st.button("Search on Instagram / Facebook"):
-        st.info("Go to Google → search: \"site:instagram.com\" or \"site:facebook.com\" after doing reverse search")
-    
-    if st.button("Search on X / Twitter"):
+    st.subheader("Social Media Quick Search")
+    if st.button("Instagram / Facebook Search"):
+        st.info("After reverse search, try Google with: site:instagram.com [name]")
+    if st.button("Twitter / X"):
         webbrowser.open("https://twitter.com/explore")
-    
-    if st.button("Search on VK (good for faces)"):
-        webbrowser.open("https://vk.com/search?c%5Bphoto%5D=1")
+    if st.button("VK Search"):
+        webbrowser.open("https://vk.com/search")
 
-    st.subheader("Extra Useful Links")
-    st.markdown("""
-    - [TinEye](https://tineye.com/) - Exact match search
-    - [Bing Visual Search](https://www.bing.com/visualsearch)
-    - [Social Catfish](https://socialcatfish.com/) - People search
-    - [BeenVerified](https://www.beenverified.com/) - Public records
-    """)
-
-    st.info("""
-    **Best Workflow:**
-    1. Download the image
-    2. Start with **PimEyes** or **Yandex**
-    3. Then search the name you find on Instagram, Facebook, Twitter, etc.
-    """)
+    st.info("Download the image and upload it on the sites above for best results.")
