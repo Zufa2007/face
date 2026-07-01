@@ -1,62 +1,62 @@
 import streamlit as st
-import cv2
-import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 import io
-import pickle
-import os
-from datetime import datetime
+import webbrowser
 
-DB_FILE = "database.pkl"
-
-if os.path.exists(DB_FILE):
-    with open(DB_FILE, "rb") as f:
-        database = pickle.load(f)
-else:
-    database = {}
-
-st.set_page_config(page_title="Scanner Pro", layout="wide")
-st.title("Scanner Pro")
+st.set_page_config(page_title="Web Scanner", layout="wide")
+st.title("🕵️ Web Scanner Pro")
+st.markdown("Upload image → Get links to search on social media & major platforms")
 
 uploaded_file = st.file_uploader("Upload image...", type=["jpg", "jpeg", "png", "webp"])
 
 if uploaded_file:
-    image = Image.open(uploaded_file).convert("RGB")
+    image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Image", use_container_width=True)
-
-    # Use headless version
-    img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
-    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    items = cascade.detectMultiScale(gray, 1.1, 5, minSize=(60,60))
-
-    if len(items) > 0:
-        st.success(f"Detected {len(items)} item(s)")
-        annotated = image.copy()
-        draw = ImageDraw.Draw(annotated)
-        for (x, y, w, h) in items:
-            draw.rectangle([x, y, x+w, y+h], outline="lime", width=5)
-        st.image(annotated, caption="Detected", use_container_width=True)
 
     buf = io.BytesIO()
     image.save(buf, format="JPEG", quality=95)
-    img_bytes = buf.getvalue()
+    st.download_button("📥 Download Image (Recommended)", buf.getvalue(), "image_for_search.jpg", "image/jpeg")
 
-    st.download_button("Download Image", img_bytes, "image.jpg", "image/jpeg")
+    st.subheader("🔍 Best Places to Search This Image")
 
-    name_input = st.text_input("Label this as:", placeholder="Name")
+    col1, col2 = st.columns(2)
 
-    if st.button("Save to Collection", type="primary"):
-        if name_input:
-            database[name_input] = {"added": str(datetime.now())}
-            with open(DB_FILE, "wb") as f:
-                pickle.dump(database, f)
-            st.success(f"Saved: {name_input}")
+    with col1:
+        st.markdown("**Best for People / Celebrities**")
+        if st.button("PimEyes", type="primary"):
+            webbrowser.open("https://pimeyes.com/en/")
+        if st.button("FaceCheck.ID"):
+            webbrowser.open("https://facecheck.id/")
 
-    if st.button("Search Collection"):
-        if database:
-            for name in database.keys():
-                st.write(f"• {name}")
-        else:
-            st.write("Collection empty")
+    with col2:
+        st.markdown("**Best General Search**")
+        if st.button("Yandex Images"):
+            webbrowser.open("https://yandex.com/images/")
+        if st.button("Google Reverse"):
+            webbrowser.open("https://www.google.com/searchbyimage")
+
+    st.subheader("📱 Social Media & Other Platforms")
+    
+    if st.button("Search on Instagram / Facebook"):
+        st.info("Go to Google → search: \"site:instagram.com\" or \"site:facebook.com\" after doing reverse search")
+    
+    if st.button("Search on X / Twitter"):
+        webbrowser.open("https://twitter.com/explore")
+    
+    if st.button("Search on VK (good for faces)"):
+        webbrowser.open("https://vk.com/search?c%5Bphoto%5D=1")
+
+    st.subheader("Extra Useful Links")
+    st.markdown("""
+    - [TinEye](https://tineye.com/) - Exact match search
+    - [Bing Visual Search](https://www.bing.com/visualsearch)
+    - [Social Catfish](https://socialcatfish.com/) - People search
+    - [BeenVerified](https://www.beenverified.com/) - Public records
+    """)
+
+    st.info("""
+    **Best Workflow:**
+    1. Download the image
+    2. Start with **PimEyes** or **Yandex**
+    3. Then search the name you find on Instagram, Facebook, Twitter, etc.
+    """)
